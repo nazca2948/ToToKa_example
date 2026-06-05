@@ -1,0 +1,734 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, user-scalable=no"
+    />
+    <title>時解駆_サンプル</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Share+Tech+Mono&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      @font-face {
+        font-family: "VekosBold";
+        src: url("fonts/vekos-bold.ttf") format("truetype");
+        font-display: swap;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #14181f;
+        --surface: #1c2230;
+        --card: #232d3f;
+        --border: #2e3d55;
+        --p1: #00c97a;
+        --p1-dim: #0d3b25;
+        --p1-glow: rgba(0, 201, 122, 0.22);
+        --gold: #f59e0b;
+        --text: #dce4f0;
+        --muted: #6b7a99;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100dvh;
+        overflow: hidden;
+        background: var(--bg);
+        color: var(--text);
+        font-family: "Share Tech Mono", monospace;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background-image:
+          linear-gradient(rgba(0, 201, 122, 0.03) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0, 201, 122, 0.03) 1px, transparent 1px);
+        background-size: 3vw 3vw;
+      }
+
+      /* ── Game Screen ───────────────────────────── */
+      #gameScreen {
+        display: flex;
+        flex-direction: column;
+        position: fixed;
+        inset: 0;
+        padding: 1.4vw 1.8vw 1.6vw;
+        gap: 1.2vw;
+      }
+
+      .game-body {
+        flex: 1;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 1.6vw;
+        min-height: 0;
+      }
+
+      /* ── Left Panel ────────────────────────────── */
+      .left-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 0.9vw;
+        min-height: 0;
+        min-width: 0;
+        width: 100%;
+        overflow: hidden;
+      }
+      .q-meta {
+        display: flex;
+        align-items: center;
+        gap: 1vw;
+        flex-shrink: 0;
+      }
+      .q-num {
+        font-size: 3.6vw;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .puzzle-frame {
+        flex: 1;
+        width: 100%;
+        min-width: 0;
+        min-height: 0;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 1.2vw;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5vw;
+        padding: 2vw 2.4vw;
+        position: relative;
+        overflow: hidden;
+      }
+      .puzzle-frame::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+          repeating-linear-gradient(
+            0deg,
+            transparent,
+            transparent 47px,
+            rgba(0, 201, 122, 0.025) 47px,
+            rgba(0, 201, 122, 0.025) 48px
+          ),
+          repeating-linear-gradient(
+            90deg,
+            transparent,
+            transparent 47px,
+            rgba(0, 201, 122, 0.025) 47px,
+            rgba(0, 201, 122, 0.025) 48px
+          );
+      }
+
+      .puzzle-content {
+        flex: 1;
+        min-height: 0;
+        width: 100%;
+        display: grid;
+        align-content: center;
+        justify-items: center;
+        gap: 1.2vw;
+      }
+
+      .puzzle-placeholder {
+        flex: 1;
+        min-height: 0;
+        text-align: center;
+        color: var(--muted);
+        font-size: 1.5vw;
+        line-height: 2.2;
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+      }
+      .puzzle-placeholder .arrow-hint {
+        font-size: 3.5vw;
+        display: block;
+        margin-bottom: 0.8vw;
+        animation: nudge 1.6s ease-in-out infinite;
+      }
+      @keyframes nudge {
+        0%,
+        100% {
+          transform: translateX(0);
+        }
+        50% {
+          transform: translateX(0.5vw);
+        }
+      }
+
+      .puzzle-input-area {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.45vw;
+        width: 100%;
+        flex-shrink: 0;
+        position: relative;
+        z-index: 1;
+      }
+      .input-row {
+        display: flex;
+        gap: 0.7vw;
+        width: 100%;
+      }
+      .ans-input {
+        flex: 1;
+        background: var(--card);
+        border: 0.12vw solid var(--border);
+        border-radius: 0.7vw;
+        padding: 0.55vw 1.2vw;
+        font-size: 1.4vw;
+        color: var(--text);
+        font-family: "Share Tech Mono", monospace;
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      .ans-input:focus {
+        border-color: var(--p1);
+        box-shadow: 0 0 0 0.25vw var(--p1-glow);
+      }
+      .ans-input::placeholder {
+        color: var(--muted);
+      }
+      .ans-input:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .submit-btn {
+        background: var(--p1);
+        color: #0a1a0f;
+        border: none;
+        border-radius: 0.7vw;
+        padding: 0.55vw 1.8vw;
+        font-size: 1.2vw;
+        font-weight: 700;
+        font-family: "Share Tech Mono", monospace;
+        cursor: pointer;
+        transition:
+          opacity 0.15s,
+          transform 0.1s;
+        box-shadow: 0 0 1.2vw var(--p1-glow);
+        white-space: nowrap;
+      }
+      .submit-btn:hover {
+        opacity: 0.85;
+      }
+      .submit-btn:active {
+        transform: scale(0.96);
+      }
+      .submit-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+      }
+      .result-msg {
+        font-size: 1.1vw;
+        min-height: 1.3vw;
+        letter-spacing: 0.05em;
+      }
+      .result-msg.correct {
+        color: var(--p1);
+      }
+      .result-msg.wrong {
+        color: #ef4444;
+      }
+
+      /* ── Right Panel ───────────────────────────── */
+      .right-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 1vw;
+        min-height: 0;
+        min-width: 0;
+        overflow: hidden;
+        align-items: flex-start;
+      }
+
+      .puzzle-grid {
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 0.7vw;
+        aspect-ratio: 1;
+        max-height: 100%;
+        width: auto;
+        padding: 1.2vw;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 1.2vw;
+      }
+      .cell {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 0.7vw;
+        cursor: pointer;
+        border: 0.12vw solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        position: relative;
+        transition:
+          transform 0.12s,
+          border-color 0.12s,
+          background 0.2s,
+          box-shadow 0.2s;
+        user-select: none;
+      }
+      .cell:hover:not(.solved) {
+        transform: scale(1.05);
+        border-color: var(--muted);
+      }
+      .cell.active {
+        border-color: var(--gold);
+        box-shadow: 0 0 0 0.15vw rgba(245, 158, 11, 0.35);
+      }
+      .cell.solved {
+        background: var(--p1-dim);
+        border-color: var(--p1);
+        color: var(--p1);
+        cursor: default;
+      }
+      .cell-num {
+        font-size: 7vw;
+        font-weight: 700;
+        font-family: "Share Tech Mono", monospace;
+        line-height: 1;
+      }
+      .cell .tick {
+        position: absolute;
+        top: 0.4vw;
+        right: 0.6vw;
+        font-size: 0.9vw;
+        color: var(--p1);
+        display: none;
+      }
+      .cell.solved .tick {
+        display: block;
+      }
+
+      .progress-section {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5vw;
+        flex-shrink: 0;
+      }
+      .progress-track {
+        background: var(--card);
+        border-radius: 0.4vw;
+        height: 0.6vw;
+        overflow: hidden;
+        border: 1px solid var(--border);
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--p1), #00e890);
+        border-radius: 0.4vw;
+        width: 0%;
+        transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .progress-labels {
+        display: flex;
+        justify-content: space-between;
+        font-size: 1.3vw;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="gameScreen">
+      <div class="game-body">
+        <!-- ── 左：問題エリア ──────────────────── -->
+        <div class="left-panel">
+          <div class="q-meta">
+            <div class="q-num" id="qNum">——</div>
+          </div>
+
+          <div class="puzzle-frame">
+            <div class="puzzle-placeholder" id="puzzlePlaceholder">
+              <span class="arrow-hint">→</span>
+              右のグリッドから<br />問題を選んでください
+            </div>
+            <div
+              class="puzzle-content"
+              id="puzzleContent"
+              style="display: none"
+            ></div>
+            <div class="puzzle-input-area" id="puzzleInputArea">
+              <div class="input-row">
+                <input
+                  class="ans-input"
+                  id="ansInput"
+                  type="text"
+                  placeholder=""
+                  disabled
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+                <button
+                  class="submit-btn"
+                  id="submitBtn"
+                  onclick="submitAnswer()"
+                  disabled
+                >
+                  決定
+                </button>
+              </div>
+              <div class="result-msg" id="resultMsg"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── 右：グリッド ───────────────────── -->
+        <div class="right-panel">
+          <div class="puzzle-grid" id="grid"></div>
+          <div class="progress-section" style="width: 100%">
+            <div class="progress-track">
+              <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-labels">
+              <span id="progressText">0 / 4 解答済み</span>
+              <span id="progressPct" style="color: var(--p1)">0%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // ═══════════════════════════════════════════════════
+      //  問題データ  ← ここを編集してください
+      // ═══════════════════════════════════════════════════
+      const PUZZLES = [
+        {
+          title: "テキスト問題",
+          type: "text",
+          text: "なんと読む？",
+          sub: "𮯗",
+          placeholder: "ひらがなで入力",
+          answer: "おくば",
+        },
+        {
+          title: "画像問題",
+          type: "image",
+          text: "この国はどこ？",
+          imageSrc: "sample.jpg",
+          placeholder: "カタカナで入力",
+          answer: "デンマーク",
+        },
+        {
+          title: "連打",
+          type: "click",
+          text: "ボタンを20回押せ！",
+          clickTarget: 20,
+        },
+        {
+          title: "タイプライター",
+          type: "typewriter",
+          text: "フランス語で「火にかけた鍋」という意味がある、肉や野菜を煮込んだフランスの家庭料理は何？",
+          interval: 3000, // ms / 文字
+          placeholder: "カタカナで入力",
+          answer: "ポトフ",
+        },
+      ];
+      // ═══════════════════════════════════════════════════
+
+      const TOTAL = PUZZLES.length;
+      const solved = new Array(TOTAL).fill(false);
+      const startTimes = {}; // idx → Date.now() when first opened
+
+      let currentQ = null;
+      let renderCleanup = null;
+
+      // ── Progress ──────────────────────────────────────
+      function updateProgress() {
+        const n = solved.filter(Boolean).length;
+        const pct = Math.round((n / TOTAL) * 100);
+        document.getElementById("progressText").textContent =
+          `${n} / ${TOTAL} 解答済み`;
+        document.getElementById("progressPct").textContent = `${pct}%`;
+        document.getElementById("progressFill").style.width = `${pct}%`;
+      }
+
+      // ── Grid ──────────────────────────────────────────
+      function buildGrid() {
+        const grid = document.getElementById("grid");
+        grid.innerHTML = "";
+        PUZZLES.forEach((p, i) => {
+          const cell = document.createElement("div");
+          cell.className =
+            "cell" +
+            (solved[i] ? " solved" : "") +
+            (currentQ === i ? " active" : "");
+          cell.id = `cell-${i}`;
+          cell.innerHTML = `
+      <div class="cell-num">Q${i + 1}</div>
+      <div class="tick">✓</div>`;
+          cell.addEventListener("click", () => selectCell(i));
+          grid.appendChild(cell);
+        });
+      }
+
+      function refreshCell(i) {
+        const cell = document.getElementById(`cell-${i}`);
+        if (!cell) return;
+        cell.className =
+          "cell" +
+          (solved[i] ? " solved" : "") +
+          (currentQ === i ? " active" : "");
+      }
+
+      function selectCell(i) {
+        if (currentQ === i) return;
+        doCleanup();
+        currentQ = i;
+        buildGrid();
+        openPuzzle(i);
+      }
+
+      // ── Open Puzzle ───────────────────────────────────
+      function openPuzzle(i) {
+        if (!startTimes[i]) startTimes[i] = Date.now();
+
+        const inp = document.getElementById("ansInput");
+        const btn = document.getElementById("submitBtn");
+        const res = document.getElementById("resultMsg");
+        const p = PUZZLES[i];
+
+        document.getElementById("qNum").textContent = `Q${i + 1}`;
+        inp.placeholder = p.placeholder || "";
+        document.getElementById("puzzlePlaceholder").style.display = "none";
+        document
+          .getElementById("puzzleContent")
+          .style.removeProperty("display");
+        document.getElementById("puzzleInputArea").style.display = "flex";
+
+        inp.value = "";
+        inp.disabled = false;
+        btn.disabled = false;
+        res.textContent = "";
+        res.className = "result-msg";
+
+        if (solved[i]) {
+          inp.disabled = true;
+          btn.disabled = true;
+          res.textContent = "✓ クリア済み";
+          res.className = "result-msg correct";
+        }
+
+        renderPuzzle(i);
+      }
+
+      // ── Render by type ────────────────────────────────
+      function renderPuzzle(i) {
+        const p = PUZZLES[i];
+        const el = document.getElementById("puzzleContent");
+        el.innerHTML = "";
+        el.style.cssText = ""; // inline display:none をクリア → CSS class の display:grid が有効になる
+        const ok = solved[i];
+        (
+          ({
+            text: rText,
+            image: rImage,
+            click: rClick,
+            typewriter: rTypewriter,
+          })[p.type] || (() => {})
+        )(el, p, ok, i);
+      }
+
+      function rText(el, p, ok) {
+        el.innerHTML =
+          `<div style="font-family:'Noto Serif JP',serif;font-size:2vw;font-weight:700;
+              text-align:center;line-height:1.4;white-space:pre-wrap;width:100%;">${escHtml(p.text || "")}</div>` +
+          (p.sub
+            ? `<div style="font-family:'Noto Serif JP',serif;font-size:10vw;font-weight:700;
+                text-align:center;line-height:1.1;white-space:pre-wrap;width:100%;">${escHtml(p.sub)}</div>`
+            : "");
+        if (!ok) document.getElementById("ansInput").focus();
+      }
+
+      function rImage(el, p, ok) {
+        el.style.cssText =
+          "display:flex;flex-direction:column;align-items:center;gap:1.2vw;";
+        el.innerHTML =
+          (p.text
+            ? `<div style="font-family:'Noto Serif JP',serif;font-size:1.6vw;font-weight:700;
+                text-align:center;line-height:1.8;flex-shrink:0;white-space:pre-wrap;width:100%;">${escHtml(p.text)}</div>`
+            : "") +
+          `<img src="${escAttr(p.imageSrc || "")}"
+            style="flex:1;min-height:0;max-width:100%;object-fit:contain;border-radius:.6vw;"
+            onerror="this.style.opacity='.15'" />`;
+        if (!ok) document.getElementById("ansInput").focus();
+      }
+
+      function rClick(el, p, ok, idx) {
+        document.getElementById("puzzleInputArea").style.display = "none";
+        const target = p.clickTarget || 20;
+
+        if (ok) {
+          el.innerHTML = `<div style="font-size:3vw;color:var(--p1);font-family:'Noto Serif JP',serif;text-align:center;">✓ クリア！</div>`;
+          return;
+        }
+
+        let count = 0,
+          locked = false;
+        el.innerHTML =
+          `<div style="font-family:'Noto Serif JP',serif;font-size:1.8vw;font-weight:700;text-align:center;">${escHtml(p.text || "ボタンを押せ！")}</div>` +
+          `<div id="clickCtr" style="font-size:5vw;font-weight:700;text-align:center;">0 <span style="font-size:1.4vw;color:var(--muted);">/ ${target}</span></div>` +
+          `<button id="clickBtn"
+            style="background:var(--card);border:2px solid var(--border);border-radius:.8vw;
+                   padding:1.4vw 4vw;font-size:2vw;font-weight:700;color:var(--text);
+                   cursor:pointer;font-family:'Share Tech Mono',monospace;
+                   transition:transform .08s;-webkit-tap-highlight-color:transparent;"
+            onmousedown="this.style.transform='scale(.95)'"
+            onmouseup="this.style.transform='scale(1)'"
+            ontouchstart="this.style.transform='scale(.95)'"
+            ontouchend="this.style.transform='scale(1)'">PUSH</button>`;
+
+        document.getElementById("clickBtn").addEventListener("click", () => {
+          if (locked || currentQ !== idx) return;
+          count++;
+          const ctr = document.getElementById("clickCtr");
+          if (ctr)
+            ctr.innerHTML = `${count} <span style="font-size:1.4vw;color:var(--muted);">/ ${target}</span>`;
+          if (count >= target) {
+            locked = true;
+            markSolved(idx);
+            el.innerHTML = `<div style="font-size:3vw;color:var(--p1);font-family:'Noto Serif JP',serif;text-align:center;">✓ クリア！</div>`;
+          }
+        });
+      }
+
+      function rTypewriter(el, p, ok, idx) {
+        const text = p.text || "";
+        const interval = p.interval || 5000;
+
+        el.innerHTML =
+          `<div style="font-size:1.2vw;color:var(--muted);text-align:center;">${interval / 1000}秒に1文字ずつ表示されます</div>` +
+          `<div id="twText" style="font-family:'Noto Serif JP',serif;font-size:2.2vw;font-weight:700;
+            line-height:1.4;text-align:center;word-break:break-all;padding:0 2vw;width:100%;"></div>`;
+
+        const tw = document.getElementById("twText");
+
+        if (ok) {
+          if (tw) tw.textContent = text;
+          return;
+        }
+
+        document.getElementById("ansInput").focus();
+
+        const t0 = startTimes[idx] || Date.now();
+        const getN = () =>
+          Math.min(Math.floor((Date.now() - t0) / interval) + 1, text.length);
+        if (tw) tw.textContent = text.slice(0, getN());
+
+        let iv = null;
+        if (getN() < text.length) {
+          iv = setInterval(() => {
+            const n = getN();
+            if (tw) tw.textContent = text.slice(0, n);
+            if (n >= text.length) {
+              clearInterval(iv);
+              iv = null;
+            }
+          }, 300);
+        }
+        renderCleanup = () => {
+          if (iv) {
+            clearInterval(iv);
+            iv = null;
+          }
+        };
+      }
+
+      // ── Answer ────────────────────────────────────────
+      function submitAnswer() {
+        if (currentQ === null) return;
+        const p = PUZZLES[currentQ];
+        const inp = document.getElementById("ansInput");
+        const res = document.getElementById("resultMsg");
+        const ok = norm(inp.value) === norm(p.answer || "");
+
+        if (ok) {
+          res.textContent = "✓ 正解！";
+          res.className = "result-msg correct";
+          markSolved(currentQ);
+        } else {
+          res.textContent = "✗ 不正解";
+          res.className = "result-msg wrong";
+          inp.value = "";
+          inp.focus();
+        }
+      }
+
+      function markSolved(i) {
+        solved[i] = true;
+        document.getElementById("ansInput").disabled = true;
+        document.getElementById("submitBtn").disabled = true;
+        const res = document.getElementById("resultMsg");
+        res.textContent = "✓ クリア！";
+        res.className = "result-msg correct";
+        refreshCell(i);
+        updateProgress();
+      }
+
+      // ── Utils ─────────────────────────────────────────
+      function doCleanup() {
+        if (renderCleanup) {
+          renderCleanup();
+          renderCleanup = null;
+        }
+      }
+
+      function norm(s) {
+        return s
+          .trim()
+          .toLowerCase()
+          .replace(/[\s　]/g, "")
+          .normalize("NFKC");
+      }
+
+      function escHtml(s) {
+        return s
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+      }
+      function escAttr(s) {
+        return s.replace(/"/g, "&quot;");
+      }
+
+      document.getElementById("ansInput").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") submitAnswer();
+      });
+
+      // ── Init ──────────────────────────────────────────
+      buildGrid();
+      updateProgress();
+    </script>
+  </body>
+</html>
